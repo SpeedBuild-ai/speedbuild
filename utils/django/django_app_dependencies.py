@@ -8,19 +8,10 @@ import concurrent.futures
 from importlib import metadata
 
 from speedbuild.db.relational_db.main import init_db
-from speedbuild.db.relational_db.python_packages import batch_save_packages, get_batch_packages
+from speedbuild.db.relational_db.pkg_prepopulate_data import pre_compiled
+from speedbuild.db.relational_db.python_packages import batch_save_packages, db_has_python_packages, get_batch_packages, prepopulate_python_packages
 
 from speedbuild.utils.cli.cli_output import StatusManager
-
-# from rich.live import Live
-# from rich.table import Table
-# from rich.console import Console
-# from rich.layout import Layout
-# from rich.spinner import Spinner
-
-# from speedbuild.utils.cli.output import StatusManager 
-# from speedbuild.auth.serverCall import manageServerCall
-
 
 MAX_WORKERS = 5  # Reduced from 5 to avoid resource exhaustion
 TIMEOUT = 120  # Seconds to wait before considering a package installation hung
@@ -178,6 +169,11 @@ def get_django_app_from_packages_parallel(package_names, max_batch_size=10):
     progress_max_value = math.ceil(len(packages_to_process) / max_batch_size)
     logger = StatusManager(show_percentage=True,max_value=progress_max_value,step=1)
     logger.start_status("Getting Installed packages")
+
+    # Here
+    if not db_has_python_packages():
+        pre_compiled_pkgs = pre_compiled
+        prepopulate_python_packages(pre_compiled_pkgs)
 
     # Process in smaller batches to prevent resource exhaustion
     for i in range(0, len(packages_to_process), max_batch_size):

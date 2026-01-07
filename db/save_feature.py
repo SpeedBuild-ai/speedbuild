@@ -7,7 +7,7 @@ from speedbuild.utils.paths import getProjectConfig
 from .vector_db.vector_database import saveToVectorDB
 from .relational_db.features import create_feature, feature_exist
 
-def saveFeatureToDB(feature : Dict, framework:str, project_id : str, skip_vector_db=False) -> None:
+def saveFeatureToDB(feature : Dict, framework:str, project_id : int, skip_vector_db=False) -> None:
     name = feature['name']
     code = feature['code']
     imports = feature.get('imports',[])
@@ -49,7 +49,7 @@ def saveFeatureToDB(feature : Dict, framework:str, project_id : str, skip_vector
 
             saveToVectorDB(doc=f"{documentation}\n\n{code}",meta_data=meta_data)
 
-def processFeatureDjangoSettings(settings_data : Dict, project_id : str ) -> str:
+def processFeatureDjangoSettings(settings_data : Dict, project_id : int ) -> str:
     name = f"{settings_data['feature']}_django_settings"
     settings = settings_data.get('settings',{})
     data = {
@@ -77,7 +77,7 @@ def saveFeatureFileToDB(file : str) -> None:
     if "id" not in project_sb_config or "framework" not in project_sb_config:
         raise Exception("You need to initialized a speedbuild project first. run 'speedbuild init' ")
     
-    project_id = str(project_sb_config['id'])
+    project_id = project_sb_config['id']
     framework = project_sb_config['framework']
 
     with open(file,"r") as f:

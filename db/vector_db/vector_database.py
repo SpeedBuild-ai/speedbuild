@@ -8,10 +8,19 @@ root_path = get_user_root()
 default_collection = "default_collection"
 vector_db_path = os.path.join(root_path,"speedbuild_vectordb")
 
-def saveToVectorDB(doc,meta_data,collection_name=default_collection):
+def get_db_collection(collection_name=None):
+    if collection_name is None:
+        collection_name = default_collection
 
     client = chromadb.PersistentClient(path=vector_db_path)
     collection = client.get_or_create_collection(name=collection_name)
+
+    return collection
+
+
+def saveToVectorDB(doc,meta_data,collection_name=default_collection):
+
+    collection = get_db_collection(collection_name)
     doc_id = str(uuid.uuid4())
 
     collection.add(
@@ -22,9 +31,32 @@ def saveToVectorDB(doc,meta_data,collection_name=default_collection):
 
     return doc_id
 
+def removeFeatureEmbedding(project_id : int,feature_id:int,framework:str):
+    collection = get_db_collection()
+
+    results = collection.get(
+        where={
+            "$and": [
+                {"framework": framework},
+                {"project_id": project_id},
+                {"id": feature_id}
+            ]
+        },
+        include=["metadatas"]
+    )
+
+    if results["ids"]:
+        collection.delete(where={
+            "$and": [
+                {"framework": framework},
+                {"project_id": project_id},
+                {"id": feature_id}
+            ]
+        })
+
+
 def query_collection(collection_name,query,framework=None,n=5):
-    client = chromadb.PersistentClient(path=vector_db_path)
-    collection = client.get_or_create_collection(name=collection_name)
+    collection = get_db_collection(collection_name)
 
     if framework:
         # filter collection meta data to match framework here
@@ -51,8 +83,7 @@ def query_collection(collection_name,query,framework=None,n=5):
     return json.dumps(context)
 
 def peek_collection(collection_name=default_collection):
-    client = chromadb.PersistentClient(path=vector_db_path)
-    collection = client.get_or_create_collection(name=collection_name)
+    collection = get_db_collection(collection_name)
 
     response = collection.peek()
 
@@ -75,5 +106,6 @@ def getCodeContext(query:str,framework:str):
 
 
 if __name__ == "__main__":
-    context = getCodeContext("Pay fast payment processing and validation","django")
-    print(context)
+    # context = getCodeContext("Pay fast payment processing and validation","django")
+    print(peek_collection())
+    # removeFeatureEmbedding(6,11,"express")

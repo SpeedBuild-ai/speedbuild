@@ -65,7 +65,33 @@ def get_batch_packages(names:List[str]) -> Optional[Dict[str, Any]]:
 
     return {"packages":result}
 
-if __name__ == "__main__":
-    init_db()
-    # data = create_python_package("sympy==1.14.0",{"pkg": ["mpmath", "sympy", "__pycache__", "pip"], "version": "1.14.0"})
-    data = get_python_package("sympy==1.14.0")
+def get_all_python_packages():
+    try:
+        with get_connection() as conn:
+            cur = conn.execute(
+                """
+                SELECT * FROM python_package 
+                """
+            )
+            return cur.fetchall()
+        
+    except sqlite3.IntegrityError as error:
+        print(f"Error : {error}")
+        return None
+
+def prepopulate_python_packages(data:Dict):
+    for pkg in data:
+        if get_python_package(pkg) == None:
+            create_python_package(**{"name":pkg,"paths":data[pkg]})
+        else:
+            print(f"Skipping {pkg} already in db")
+
+def db_has_python_packages():
+    pkgs = get_all_python_packages()
+    if pkgs == None:
+        return False
+    
+    if len(pkgs) > 0:
+        return True
+    
+    return False

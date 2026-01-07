@@ -1,6 +1,9 @@
 import json
+
 from .main import get_connection, init_db
 from typing import Any, Dict, List, Optional
+
+from speedbuild.db.vector_db.vector_database import removeFeatureEmbedding
 
 # add speedbuild project id to features
 # we need project db schema
@@ -9,7 +12,7 @@ def feature_exist(name: str, filename: str, code: str, project_id : str) -> bool
     with get_connection() as conn:
         cur = conn.execute(
             """
-            SELECT 1
+            SELECT *
             FROM feature
             WHERE name = ?
               AND feature_filename = ?
@@ -20,6 +23,17 @@ def feature_exist(name: str, filename: str, code: str, project_id : str) -> bool
             (name, filename, code, project_id)
         )
         return cur.fetchone() is not None
+    
+def get_all() -> Dict:
+    with get_connection() as conn:
+        cur = conn.execute(
+            """
+            SELECT *
+            FROM feature
+            """,
+        )
+
+        return cur.fetchall()
 
 def create_feature(
     *,
@@ -153,14 +167,27 @@ def update_feature(
         )
 
 def delete_feature(feature_id: int) -> None:
-    with get_connection() as conn:
-        conn.execute(
-            "DELETE FROM feature WHERE id = ?",
-            (feature_id,)
-        )
+    data = get_feature(feature_id)
+
+    if data is not None:
+        project_id = data['project_id']
+        framework = data['framework']
+
+        with get_connection() as conn:
+            conn.execute(
+                "DELETE FROM feature WHERE id = ?",
+                (feature_id,)
+            )
+        
+        # remove embedding from vector database
+        removeFeatureEmbedding(project_id,feature_id,framework)
 
 
 if __name__ == "__main__":
     init_db()
-    data = get_feature(5)
+    # d = get_all()
+    # for i in d:
+    #     print(dict(**i),"\n\n")
+    
+    data = get_feature(186)
     print(data)
