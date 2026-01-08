@@ -19,9 +19,8 @@ from .utils.cli.cli_output import StatusManager
 from .utils.cleanup.clear_folder import clear_folder
 from .utils.package_utils import getPackageNameMapping
 from .utils.mcp_config.mcp_conf import mcp_conf_selector
-from .utils.init.init_sb import getOrSetRepoId, initSpeedbuildProject
 from .utils.config.llm_config_editor.config_editor import ConfigEditor
-from .utils.config.agent_config import getLLMConfig, setSpeedbuildConfig
+from .utils.init.init_sb import getSBProjectConfig, initSpeedbuildProject
 
 from .frameworks.django.extraction.extract_features import createTemplate
 from .frameworks.express.find.get_paths import getAllExpressProjectRoutes
@@ -73,13 +72,10 @@ async def run_docs_and_upload(features,framework,repo_id):
 
     await doc_cache.flush()
 
-def extractFeature(project_root,args,append_root=False,package_info=None,repo_id=None):
+def extractFeature(project_root,args,append_root=False,package_info=None,repo_id=None,framework=None):
     try:
         target = args[2]
         extract_from = args[3]
-        framework = args[4]
-
-        framework = framework.replace("--","").lower()
 
         if repo_id == None: # Clear output folder before performing single extract
             # clear extraction output folder here
@@ -116,7 +112,7 @@ def extractFeature(project_root,args,append_root=False,package_info=None,repo_id
         return feature_file_path
 
     except IndexError:
-        print("Usage : python final.py <what_to_extract> <extraction_entry_point> --framework")
+        print("Usage : python speedbuild extract <what_to_extract> <extraction_entry_point>")
         return None
 
 def listExtractedFeature(args):
@@ -142,7 +138,7 @@ def init_worker(pkg_map, installed):
     PACKAGE_MAP = pkg_map
     INSTALLED_PACKAGES = installed
 
-def extractFeature_worker(project_path, args, dry_run,repo_id=None):
+def extractFeature_worker(project_path, args, dry_run,repo_id=None,framework=None):
     """
     Thin worker wrapper.
     Uses globals initialized per process.
@@ -152,7 +148,8 @@ def extractFeature_worker(project_path, args, dry_run,repo_id=None):
         args,
         dry_run,
         [PACKAGE_MAP, INSTALLED_PACKAGES],
-        repo_id
+        repo_id,
+        framework
     )
 
 def extract_all(data, framework, project_path,repo_id=None):
@@ -161,7 +158,6 @@ def extract_all(data, framework, project_path,repo_id=None):
     if framework == "django":
         package_map, installed_packages = getPackageNameMapping(project_path)
 
-    {'feature': 'deleteCartItem', 'source_file': '/home/attah/Documents/jannis/api/jannis_api/shop/views.py'}
     extract_logger = StatusManager()
     extract_logger.start_status("Extracting Features")
 
@@ -183,7 +179,6 @@ def extract_all(data, framework, project_path,repo_id=None):
                 "extract",
                 item["feature"],
                 item["source_file"],
-                f"--{framework}",
             ]
 
             futures.append(
@@ -192,21 +187,27 @@ def extract_all(data, framework, project_path,repo_id=None):
                     project_path,
                     args,
                     False,   # dry_run
-                    repo_id
+                    repo_id,
+                    framework
                 )
             )
 
         # Collect results as they finish
         for future in as_completed(futures):
-            try:
-                res = future.result()
-                if res is not None:
-                    extracted.append(res)
-                if isinstance(res, dict):
-                    final.update(res)
-            except Exception as e:
-                # IMPORTANT: don't let one failure kill everything
-                print(f"[extract] worker failed: {e}")
+            res = future.result()
+            if res is not None:
+                extracted.append(res)
+            if isinstance(res, dict):
+                final.update(res)
+            # try:
+            #     res = future.result()
+            #     if res is not None:
+            #         extracted.append(res)
+            #     if isinstance(res, dict):
+            #         final.update(res)
+            # except Exception as e:
+            #     # IMPORTANT: don't let one failure kill everything
+            #     print(f"[extract] worker failed: {e}")
 
     # ---------- Cleanup (ONLY after workers are done) ----------
     output_folder = os.path.join(project_path, "output")
@@ -223,7 +224,7 @@ def extract_all(data, framework, project_path,repo_id=None):
 
 async def GetReusableFeatures(project_path,framework="django"):
 
-    repo_id = getOrSetRepoId(project_path) # Work here to remove this
+    repo_id = 1 #getOrSetRepoId(project_path) # Work here to remove this
     feature_cache = getFeatureCache()
 
     reusable_features = []
@@ -308,6 +309,16 @@ async def GetReusableFeatures(project_path,framework="django"):
     
     batch_save_features_to_db(extracted)
 
+
+def getProjectFramework(project_path):
+    # get framework here
+    config = getSBProjectConfig(project_path)
+    if "framework" not in config:
+        print("You need to initialize a speedbuild project first\nrun `speedbuild init` ")
+        return None
+        
+    return config['framework']
+
 def start():
     args = sys.argv
     current_path = os.path.abspath(".")
@@ -317,17 +328,23 @@ def start():
 
         if command == "extract":
             # sb.py extract / views.py --express
-            os.environ['multi_extract'] = "False" #specify we are doing single extract
-            extractFeature(current_path,args)
+            framework = getProjectFramework(current_path)
+
+            if framework is not None:
+                os.environ['multi_extract'] = "False" #specify we are doing single extract
+                extractFeature(project_root=current_path,args=args,framework=framework)
 
         elif command == "list":
             listExtractedFeature(args)
         
         elif command == "find":
-            os.environ['multi_extract'] = "True" # Specify we are doing multi extract
-            os.environ['speed_build_verbose'] = "False"
+            # get framework here
+            framework = getProjectFramework(current_path)
+            if framework is not None:
+                os.environ['multi_extract'] = "True" # Specify we are doing multi extract
+                os.environ['speed_build_verbose'] = "False"
 
-            asyncio.run(GetReusableFeatures(os.path.abspath("."),args[2].strip()))
+                asyncio.run(GetReusableFeatures(project_path=os.path.abspath("."),framework=framework))
 
         elif command == "init":
             "Initialize a new speedbuild project"
