@@ -23,6 +23,12 @@ Currently focused on Django and Express projects, with support for their common 
    ```
 
 3. Get the MCP configuration:
+
+   Note : you need FastMCP installed to use speedbuild MCP
+   ```
+   pip install fastmcp
+   ```
+   After installing FastMCP run
    ```
    speedbuild mcp-config
    ```
@@ -48,6 +54,19 @@ speedbuild config
 ```
 
 to setup llm configuration and specify which models to use. 
+
+NOTE !! you need to install the relevant lanchain provider package for your model provider of choice.
+
+```
+# for openai
+pip install langchain-openai
+
+# for google
+pip install langchain-google-vertexai langchain-google-genai
+
+# for anthropic
+langchain-anthropic 
+```
 
 ## Future plans
 
