@@ -65,7 +65,7 @@ pip install langchain-openai
 pip install langchain-google-vertexai langchain-google-genai
 
 # for anthropic
-langchain-anthropic 
+pip install langchain-anthropic 
 ```
 
 ## Future plans
