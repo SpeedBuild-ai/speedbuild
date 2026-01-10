@@ -74,5 +74,4 @@ Phase 2 will add:
 - Versioning of extracted features
 - Collaboration (sharing across team members)
 - Monitoring
-
-These will be paid features.
+- Code validation 
