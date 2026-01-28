@@ -65,7 +65,7 @@ pip install langchain-openai
 pip install langchain-google-vertexai langchain-google-genai
 
 # for anthropic
-langchain-anthropic 
+pip install langchain-anthropic 
 ```
 
 ## Future plans
@@ -74,5 +74,4 @@ Phase 2 will add:
 - Versioning of extracted features
 - Collaboration (sharing across team members)
 - Monitoring
-
-These will be paid features.
+- Code validation 
