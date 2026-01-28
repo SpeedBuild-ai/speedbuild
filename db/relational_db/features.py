@@ -22,7 +22,10 @@ def feature_exist(name: str, filename: str, code: str, project_id : str) -> bool
             """,
             (name, filename, code, project_id)
         )
-        return cur.fetchone() is not None
+
+        if cur.fetchone() == None:
+            return False
+        return True
     
 def get_all() -> Dict:
     with get_connection() as conn:
@@ -93,7 +96,7 @@ def get_project_feature_by_name(name: str, project_id: str) -> Optional[Dict[str
         if not row:
             return None
         
-        print("name", name, dict(row))
+        # print("name", name, dict(row))
         return {"name": row['name'], "id": row['id']}
 
 

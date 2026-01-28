@@ -229,7 +229,8 @@ def get_django_app_from_packages_parallel(package_names, max_batch_size=10):
         
         logger.update_progress()
 
-    logger.stop_status("Installed Packages Collected")
+    # logger.stop_status("Installed Packages Collected")
+    logger.stop_status()
     return results
 
 def get_installed_packages(venv_path):

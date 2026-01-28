@@ -25,7 +25,7 @@ def getChunkDependencies(chunk,chunks_name,chunk_name=True,extra_deps=None):
 
     if chunk_name:
         if chunk not in chunks_name.keys():
-            raise ValueError("The code you want to parse is not in the file")
+            raise ValueError("The code you want to parse is not in the file",chunk,chunks_name.keys())
         
         chunk = chunks_name[chunk]
 

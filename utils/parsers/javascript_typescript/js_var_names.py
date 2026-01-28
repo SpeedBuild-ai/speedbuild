@@ -78,7 +78,11 @@ def get_variable_name_and_type(chunk):
         info = visit_node(ast.body[0])
         return info
     except esprima.error_handler.Error as e:
+        if "enum" in chunk:
+            name = chunk.split("enum")[1].split("{")[0].strip()
+            return ['enum',name]
+        
         raise ValueError(f"Parse error: {e} could not parse code : {chunk}")
-        # return None
+
     except IndexError:
         raise ValueError("error processing chunk : ",chunk)

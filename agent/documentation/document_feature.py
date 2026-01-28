@@ -101,7 +101,7 @@ async def process_batches(batches,framework):
     tasks = [call_llm_batch(b,doc_generator,statusManager) for b in batches]
     results = await asyncio.gather(*tasks)
 
-    statusManager.stop_status("Documentation Generated.")
+    statusManager.stop_status("")
 
     final = {}
     for r in results:

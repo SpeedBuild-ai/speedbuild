@@ -1,6 +1,8 @@
 import os
 import asyncio
 
+from speedbuild.agent.tools.break_chunk import getLayerBreakDown, getLayerCode
+
 from ...utils.parsers.python.parser import PythonBlockParser
 from ...utils.parsers.javascript_typescript.jsParser import JsTxParser
 from ...frameworks.express.extraction.jsDep import getChunkDependencies
@@ -109,6 +111,37 @@ def read_file(file_name : str):
         return formatJavascripttOutput(imports,chunks,variableToChunkMapping,import_deps)
 
     # print(chunks)
+
+
+async def break_chunk(file_name: str, chunk_name : str):
+    """
+    Break code chunks into sub chunks
+
+    Args:
+        file_name (str) : absolute path of the file holding the chunk
+        chunk_name (str) : name of chunk we want to break into sub chunks
+
+    Returns:
+        Successful : a list os sub chunks
+        Failure : Error message. 
+    """
+
+    file_type = "js"
+    if file_name.endswith(".py"):
+        file_type = "python"
+    
+    file_content = read_file(file_name)
+    layers = getLayerBreakDown(chunk_name)
+
+    if file_content is None:
+        return f"Could not read file {file_name}, because it does not exist"
+    
+    chunks = await getLayerCode(layers,file_content,file_type)
+
+    if chunks is not None:
+        return chunks
+    
+    return f"Could find chunk with name {chunk_name} in file"
     
 
 

@@ -17,8 +17,9 @@ Tasks
 
 "Process Layer by Layer"
 
+import asyncio
 from .read_file import read_file
-from .break_chunk import breakChunk, getLayerBreakDown, getChunk, getLayerCode
+from .break_chunk import breakChunk, getLayerBreakDown, getChunk
 
 from typing import List, Optional, TypedDict
 from pydantic import Field
@@ -112,7 +113,7 @@ def processLayer(layers,layer_chunks,items,file_type="python",root_operation=Fal
         if chunk == None:
             raise ValueError("Could not find code in file") #could not find layer in chunks
         
-        inner_layer,whitespaces = breakChunk(chunk['code'],current,file_type) #TODO Start here
+        inner_layer,whitespaces = asyncio.run(breakChunk(chunk['code'],current,file_type)) #TODO Start here
 
         result = processLayer(layers,inner_layer,items,file_type)
 

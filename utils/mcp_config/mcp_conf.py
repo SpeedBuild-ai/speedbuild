@@ -1,5 +1,6 @@
 import json
 import sys
+from rich import box
 from rich.panel import Panel
 from rich.syntax import Syntax
 from rich.layout import Layout
@@ -40,8 +41,7 @@ def render_config(spec: MCPLaunchSpec, client: str):
         Layout(
             Panel(
                 syntax,
-                border_style="green",
-                title="MCP Config",
+                box=box.SIMPLE_HEAD
             ),
             size=20,
         ),

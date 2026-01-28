@@ -1,7 +1,6 @@
 import re
 
-from speedbuild.agent.tools.break_chunk import break_chunk
-from speedbuild.agent.tools.read_file import read_file
+from speedbuild.agent.tools.read_file import read_file, break_chunk
 
 
 # Extract imports

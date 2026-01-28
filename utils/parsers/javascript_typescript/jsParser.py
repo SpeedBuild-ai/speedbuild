@@ -1,8 +1,9 @@
 import os
 from pathlib import Path
 
-from .js_var_names import get_variable_name_and_type
+from speedbuild.agent.tools.break_chunk import breakChunk
 
+from .js_var_names import get_variable_name_and_type
 
 output_marker = "### PARSER OUTPUT ###"
 varIdentifies = ["const ","let ","var "]
@@ -38,6 +39,7 @@ def getLineValue(line):
     
     return None
 
+
 class JsTxParser:
     def __init__(self):
         self.opening = [ "[","(","{","/*"]
@@ -50,14 +52,54 @@ class JsTxParser:
             if chunk.startswith(item):
                 return True
         return False
+    
+    async def stripCodeDown(self,code):
+        broken,_ = await breakChunk(code,"hello","javascript",self)
+        code = []
 
-    def get_and_set_variable_name(self,chunk):
-        return get_variable_name_and_type(chunk)
+        if len(broken) > 0:
+            code.append(broken[0]['code'])
+            code.append("   //name = speedbuild")
+            last_chunk = broken[-1]['code']
+            if last_chunk not in code:
+                code.append(last_chunk) 
+
+        return "\n".join(code)
+    
+    def removeDecorators(self,chunk:str):
+        lines = chunk.splitlines()
+
+        step = 0
+        count = 0
+        line = lines[0]
+
+        while line.strip().startswith("@"):
+            count += 1
+            step += 1
+
+            if step > len(lines) - 1:
+                return None
+            
+            line = lines[step]
+
+        cleaned = lines[count:]
+
+        if len(cleaned) == 0:
+            return None
+        
+        return "\n".join(cleaned)
+
+    async def get_and_set_variable_name(self,chunk):
+        chunk = self.removeDecorators(chunk) # remove code decorators befrore processing
+        if chunk:
+            stripedCode = await self.stripCodeDown(chunk)
+            return get_variable_name_and_type(stripedCode)
     
     def getFileInfoFromCache(self,filename):
         if self.cache is not None and filename in self.cache.keys():
             return self.cache[filename]
         return None
+    
 
     def storeFileInfoInCache(self,filename, fileData):
         # TODO : find out; is this optimized
@@ -91,6 +133,7 @@ class JsTxParser:
                 code = file.read()
 
         lines = code.split("\n")
+
         for line in lines:
             is_import = False
             memory.append(line)
@@ -141,6 +184,11 @@ class JsTxParser:
                     if not ignore_import and newCode.strip().startswith("import "):
                         imports.append(newCode)
                     else:
+                        # check for decorators
+                        if len(chunks) > 0 and chunks[-1].strip().startswith("@"):
+                            last = chunks.pop(-1)
+                            newCode = f"{last}\n{newCode}"
+     
                         chunks.append(newCode)
 
                         if not newCode.startswith("/") and not ignore_chunk_name:
@@ -152,7 +200,7 @@ class JsTxParser:
 
                             # print(chunk_to_process,"\n\n")
                             try:
-                                chunk_info = self.get_and_set_variable_name(chunk_to_process)
+                                chunk_info = await self.get_and_set_variable_name(chunk_to_process)
                                 # print(chunk_info, " - chunk info")
                                 if chunk_info is not None:
                                     if isinstance(chunk_info,list):
@@ -199,8 +247,8 @@ class JsTxParser:
                 namedImports = []
 
                 if "{" in deps and "}" in deps:
-                    namedImports = deps.split("}")[0].split("{")[-1].split(",")
-
+                    namedImports = deps.split("{")[-1].split("}")[0].split(",")
+                    namedImports = [i.strip() for i in namedImports if len(i.strip())>0] #remove trailing and leading whitespaces from namedImports
 
                 deps = deps.replace("{","").replace("}",'').replace("import","").strip().split(",")
                 src = src.replace("'","").replace('"',"")
@@ -215,6 +263,7 @@ class JsTxParser:
 
                 
                 for word in deps:
+                    word = word.strip()
                     if " as " in word:
                         word, alias = word.split(" as ")
                         src_deps.append({"dep":word.strip(),"alias":alias.strip(),"standalone": word not in namedImports, "use-require":chunk in require_synthax_import})
@@ -247,7 +296,7 @@ class JsTxParser:
         self.storeFileInfoInCache(filename,returnObject)
 
         return returnObject 
-
+    
 def removeJsIndentifier(line):
     for indentify in varIdentifies:
         if line.startswith(indentify):

@@ -299,7 +299,9 @@ def getBlockDependencies(block, all_blocks):
 
     # print("here with ",ref)
 
-    importLine.extend(ref)
+    for i in ref:
+        if i not in importLine:
+            importLine.append(i)
 
     # print(importLine)
 

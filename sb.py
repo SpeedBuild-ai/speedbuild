@@ -242,7 +242,7 @@ async def GetReusableFeatures(project_path,framework="django"):
     tasks = [isFeatureReusable(feature,framework,feature_cache) for feature in features]
     results = await asyncio.gather(*tasks)
 
-    logger.stop_status(f"{len(results)} Reusable Features Found")
+    logger.stop_status()
     
     reuse_list = []
 
@@ -297,8 +297,6 @@ async def GetReusableFeatures(project_path,framework="django"):
    
     extracted = extract_all(reusable_features,framework,project_path,repo_id)
 
-    extract_logger.print_message(f"{len(reusable_features)} Features Extracted")
-
     # REMOVE THIS
     extracted = extracted[:10] # NOTE : this is purely for testing, remove this
     # REMOVE THIS
@@ -307,7 +305,10 @@ async def GetReusableFeatures(project_path,framework="django"):
 
     await asyncio.sleep(1)
     
+    extract_logger.start_status("Saving Extracted Features; this might take some time")
     batch_save_features_to_db(extracted)
+
+    extract_logger.stop_status(f"{len(reusable_features)} Features Extracted")
 
 
 def getProjectFramework(project_path):
@@ -364,5 +365,5 @@ def start():
     except IndexError as e:
         print("Available commands :\n- init\n- extract\n- find\n- list\n- validate\n- config\n- mcp-config")
 
-# if __name__ == "__main__":
-#     # start()
+if __name__ == "__main__":
+    start()

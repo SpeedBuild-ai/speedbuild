@@ -38,14 +38,14 @@ def delete_project(project_id: int) -> None:
     
     if project is not None:
         # get all project features
-        print("we dey here")
+        # print("we dey here")
         with get_connection() as conn:
             curr = conn.execute("SELECT * from feature WHERE project_id = ?",(project_id,))
             features = curr.fetchall()
 
             for i in features:
                 # delete individual feature
-                print("deleteing",i['name'])
+                # print("deleteing",i['name'])
                 delete_feature(i['id'])
 
         with get_connection() as conn:

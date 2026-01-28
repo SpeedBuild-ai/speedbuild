@@ -15,7 +15,14 @@ def saveFeatureToDB(feature : Dict, framework:str, project_id : int, skip_vector
     filename = feature['feature_filename']
     is_root = feature.get('is_root',False)
     documentation = feature.get('documentation',"")
-    
+
+    # """
+    # if feature exist : True
+    # if feature not exist : False
+    # """
+
+    # exp = feature_exist(name,filename,code,project_id)
+    # print("test f",exp,not exp)
 
     if not feature_exist(name,filename,code,project_id):
         dependencies = ",".join([i['imports'] for i in dependencies if isinstance(i,dict)])

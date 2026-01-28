@@ -4,7 +4,6 @@ from pathlib import Path
 
 from ....utils.parsers.javascript_typescript.jsParser import JsTxParser 
 from ....utils.parsers.javascript_typescript.handleModuleExport import getModuleExport 
-from ....utils.parsers.javascript_typescript.js_var_names import get_variable_name_and_type
 from ....utils.template.write_feature_file import writeCodeToFeatureFile 
 
 from .jsDep import getChunkDependencies
@@ -73,15 +72,17 @@ def getExtraDependencies(import_deps):
 def getFileNameFromDir(dir,filename):
     if len(dir.strip()) == 0:
         return None
-    
-    current_files = os.listdir(dir)
-    filename = filename.split(".")[0]
 
-    for file in current_files:
-        if file.split(".")[0].strip() == filename:
-            # print(f"{dir}/{file}", " Found file")
-            return os.path.join(dir,file)#f"{dir}/{file}"
-    
+    try:    
+        current_files = os.listdir(dir)
+        filename = filename.split(".")[0]
+
+        for file in current_files:
+            if file.split(".")[0].strip() == filename:
+                # print(f"{dir}/{file}", " Found file")
+                return os.path.join(dir,file)#f"{dir}/{file}"
+    except FileNotFoundError:
+        pass
     return None
 
 
@@ -96,6 +97,8 @@ async def extractFeatureCode(feature,entry_file,project_root,output_path,is_feat
 
     _,_,chunks_names,import_deps = await parser.parse_code(entry_file)
     extra_dependencies, dep_to_path_mappings = getExtraDependencies(import_deps)
+
+    # print("names",import_deps,"\n\n")
 
     chunk_deps = getChunkDependencies(feature,chunks_names,is_feature_name,extra_dependencies)
 
@@ -228,7 +231,7 @@ async def extractFeatureCode(feature,entry_file,project_root,output_path,is_feat
             cleaned_chunks.append(i)
 
             # get chunk name here
-            chunk_var_name = get_variable_name_and_type(i)
+            chunk_var_name = await parser.get_and_set_variable_name(i)
             if chunk_var_name is not None:
                 deps_in_file.add(chunk_var_name[1])
         else:

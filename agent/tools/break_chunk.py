@@ -1,6 +1,3 @@
-import asyncio
-from .read_file import read_file
-from ...utils.parsers.javascript_typescript.jsParser import JsTxParser
 from ...utils.parsers.python.parser import PythonBlockParser, indentCode
 
 
@@ -83,9 +80,8 @@ def unindentCode(code):
 
     return blocks
 
-
 # Source of my problem
-def processJsChunk(code):
+async def processJsChunk(code,parser):
     lines = code.split("\n")
 
     if len(lines) < 2:
@@ -96,26 +92,16 @@ def processJsChunk(code):
 
     code = lines[1:len(lines)-1]
 
-    # whitespace = 0
-    # while code[0][whitespace] == " ":
-    #     whitespace += 1
-
-    # if whitespace > 0:
-    #     for i in range(0,len(code)):
-    #         line = code[i]
-    #         # print("line info",line.split(" "*whitespace,1))
-    #         chunks = line.split(" "*whitespace,1)
-    #         if len(chunks)  > 1:
-    #             code[i] = chunks[1]
-
     code = "\n".join(code)
 
-    _,chunks,_,_ = asyncio.run(JsTxParser().parse_code(code,False,False,True))
+    _,chunks,_,_ = await parser.parse_code(code,False,False,True)
 
     chunks.insert(0,first_line)
     chunks.append(last_line)
 
     return chunks
+
+
 
 def processChunk(code):
     """
@@ -214,7 +200,8 @@ def addLeadingWhiteSpaces(code,count):
 
     return {"name":code['name'],"code":" "*count + code['code']}
 
-def breakChunk(code,name,code_type="python"):
+
+async def breakChunk(code,name,code_type="python",parser=None):
 
     if "\t" in code:
         code = code.replace("\t"," "*4)
@@ -236,7 +223,7 @@ def breakChunk(code,name,code_type="python"):
             result[-1] = result[-1] + ","
 
     else:
-        result = processJsChunk(code)
+        result = await processJsChunk(code,parser)
 
     if isinstance(result,str):
         formatted.append({
@@ -252,7 +239,6 @@ def breakChunk(code,name,code_type="python"):
             })
 
     return formatted,whiteSpaceCount
-
 
 def getLayerBreakDown(name):
     if name == None:
@@ -273,47 +259,16 @@ def getChunk(name,chunks):
             return chunk
     return None
     
-def getLayerCode(layers,layer_chunks,file_type):
+async def getLayerCode(layers,layer_chunks,file_type):
 
     # print(layers)
 
     while len(layers) > 0:
         layer = layers.pop(0)
         chunk = getChunk(layer,layer_chunks)
-        layer_chunks,_ = breakChunk(chunk['code'],layer,file_type)
+        layer_chunks,_ = await breakChunk(chunk['code'],layer,file_type)
 
     return layer_chunks
-
-
-def break_chunk(file_name: str, chunk_name : str):
-    """
-    Break code chunks into sub chunks
-
-    Args:
-        file_name (str) : absolute path of the file holding the chunk
-        chunk_name (str) : name of chunk we want to break into sub chunks
-
-    Returns:
-        Successful : a list os sub chunks
-        Failure : Error message. 
-    """
-
-    file_type = "js"
-    if file_name.endswith(".py"):
-        file_type = "python"
-    
-    file_content = read_file(file_name)
-    layers = getLayerBreakDown(chunk_name)
-
-    if file_content is None:
-        return f"Could not read file {file_name}, because it does not exist"
-    
-    chunks = getLayerCode(layers,file_content,file_type)
-
-    if chunks is not None:
-        return chunks
-    
-    return f"Could find chunk with name {chunk_name} in file"
 
 
 # if __name__ == "__main__":
